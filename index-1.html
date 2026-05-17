@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Morgenbriefing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://accounts.google.com/gsi/client" async></script>
+
+  <style>
+    :root {
+      --bg:     #F8F3EC;
+      --card:   #FFFFFF;
+      --text:   #231E18;
+      --muted:  #8A7D6E;
+      --accent: #B06040;
+      --green:  #4E7A5E;
+      --blue:   #3A6485;
+      --amber:  #C09030;
+      --purple: #6E5A8A;
+      --border: #E2D8CC;
+      --r:      14px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.65; }
+
+    /* HEADER */
+    header { background: linear-gradient(140deg, #1E150C 0%, #3A2516 60%, #4A3020 100%); position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 24px rgba(0,0,0,.25); }
+    .h-inner { max-width: 920px; margin: 0 auto; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .h-date { display: flex; flex-direction: column; }
+    .h-weekday { font-family: 'Lora', serif; font-size: 26px; font-weight: 600; color: #FFDDBB; }
+    .h-fulldate { font-size: 12px; color: rgba(255,255,255,.5); margin-top: 2px; }
+    .h-clock { font-family: 'Lora', serif; font-size: 22px; color: rgba(255,255,255,.80); }
+    .h-actions { display: flex; align-items: center; gap: 8px; }
+
+    /* BUTTONS */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border-radius: 24px; border: none; cursor: pointer; font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700; transition: all .18s; white-space: nowrap; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #C07050; transform: translateY(-1px); }
+    .btn-ghost { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.25); }
+    .btn-ghost:hover { background: rgba(255,255,255,.22); }
+
+    /* AUTH PILL */
+    .auth-pill { display: flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .auth-pill.out { background: rgba(255,255,255,.08); color: rgba(255,255,255,.5); }
+    .auth-pill.in  { background: rgba(80,190,100,.15); color: #7AE87A; }
+    .auth-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .auth-pill.out .auth-dot { background: rgba(255,255,255,.35); }
+    .auth-pill.in  .auth-dot { background: #7AE87A; box-shadow: 0 0 6px #7AE87A; }
+
+    /* MAIN */
+    main { max-width: 920px; margin: 0 auto; padding: 28px 24px 60px; }
+
+    /* WELCOME */
+    .welcome { text-align: center; padding: 80px 20px; }
+    .welcome-icon { font-size: 72px; display: block; margin-bottom: 20px; animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    .welcome h2 { font-family:'Lora',serif; font-size:30px; margin-bottom:10px; }
+    .welcome p { color: var(--muted); max-width:420px; margin: 0 auto 28px; }
+
+    /* LOADING */
+    .loading-box { text-align: center; padding: 64px 20px; }
+    .spinner { width:46px; height:46px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 18px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-title { font-family:'Lora',serif; font-style:italic; color:var(--muted); margin-bottom:22px; }
+    .steps { list-style:none; text-align:left; display:inline-block; }
+    .steps li { padding:5px 0; color:var(--muted); font-size:14px; transition:color .3s; }
+    .steps li::before { content:'○  '; }
+    .steps li.done { color: var(--green); } .steps li.done::before { content:'✓  '; }
+    .steps li.active { color:var(--accent); font-weight:700; } .steps li.active::before { content:'◉  '; }
+
+    /* ERROR */
+    .error-box { background:#FFF3F0; border:1.5px solid #FFD0C0; border-radius:var(--r); padding:22px 26px; color:#B04030; }
+    .error-box strong { display:block; margin-bottom:8px; font-size:16px; }
+    .error-box pre { font-size:12px; opacity:.7; white-space:pre-wrap; word-break:break-all; margin-top:8px; }
+
+    /* BRIEFING */
+    .briefing-meta { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; flex-wrap:wrap; gap:8px; }
+    .briefing-meta h2 { font-family:'Lora',serif; font-style:italic; font-size:20px; color:var(--muted); }
+    .briefing-ts { font-size:12px; color:var(--muted); }
+    .briefing-body { display:flex; flex-direction:column; gap:16px; }
+
+    /* SECTION CARDS */
+    .sc { background:var(--card); border-radius:var(--r); padding:20px 22px; box-shadow:0 1px 4px rgba(80,55,30,.07); border:1px solid var(--border); border-left:4px solid var(--border); transition:box-shadow .2s; }
+    .sc:hover { box-shadow: 0 4px 18px rgba(80,55,30,.10); }
+    .sc-title { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; }
+    .sc-body p { margin:6px 0; } .sc-body ul,.sc-body ol { margin:6px 0 6px 18px; } .sc-body li { margin:3px 0; }
+    .sc-body strong { font-weight:700; } .sc-body em { color:var(--muted); font-style:italic; }
+    .c-today   { border-left-color:var(--accent); } .c-today   .sc-title { color:var(--accent); }
+    .c-trans   { border-left-color:var(--blue);   } .c-trans   .sc-title { color:var(--blue);   }
+    .c-food    { border-left-color:var(--green);  } .c-food    .sc-title { color:var(--green);  }
+    .c-week    { border-left-color:var(--amber);  } .c-week    .sc-title { color:var(--amber);  }
+    .c-school  { border-left-color:var(--purple); } .c-school  .sc-title { color:var(--purple); }
+    .c-other   { border-left-color:var(--border); } .c-other   .sc-title { color:var(--muted);  }
+
+    /* SETUP MODAL */
+    .overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
+    .modal-box { background:#fff; border-radius:18px; padding:32px; width:100%; max-width:500px; box-shadow:0 24px 64px rgba(0,0,0,.30); }
+    .modal-box h2 { font-family:'Lora',serif; font-size:22px; margin-bottom:6px; }
+    .modal-intro { color:var(--muted); font-size:14px; margin-bottom:24px; }
+    .fg { margin-bottom:16px; }
+    .fg label { display:block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:6px; }
+    .fg input { width:100%; padding:10px 14px; border:1.5px solid var(--border); border-radius:8px; font-family:'Nunito',sans-serif; font-size:14px; color:var(--text); background:var(--bg); transition:border-color .2s; }
+    .fg input:focus { outline:none; border-color:var(--accent); }
+    .fg small { font-size:12px; color:var(--muted); display:block; margin-top:4px; }
+    .modal-actions { display:flex; gap:10px; margin-top:24px; }
+    #btn-save { flex:1; padding:13px; border-radius:24px; border:none; cursor:pointer; background:var(--accent); color:#fff; font-family:'Nunito',sans-serif; font-size:15px; font-weight:800; }
+    #btn-save:hover { background:#C07050; }
+    #btn-cancel { padding:13px 18px; border-radius:24px; border:1.5px solid var(--border); cursor:pointer; background:transparent; color:var(--muted); font-family:'Nunito',sans-serif; font-size:14px; }
+
+    .hidden { display: none !important; }
+    .center { text-align:center; margin-top:24px; }
+    @media (max-width:600px) { .h-inner { padding:14px 16px; } .h-weekday { font-size:20px; } .h-clock { font-size:17px; } main { padding:18px 14px 50px; } }
+  </style>
+</head>
+<body>
+
+<!-- SETUP MODAL -->
+<div id="overlay" class="overlay hidden">
+  <div class="modal-box">
+    <h2>Indstillinger</h2>
+    <p class="modal-intro">Dine noglerne gemmes kun lokalt i din browser.</p>
+    <div class="fg">
+      <label>Google OAuth Client ID</label>
+      <input type="text" id="inp-cid" placeholder="123456789.apps.googleusercontent.com" autocomplete="off">
+      <small>Fra Google Cloud Console &rarr; Credentials &rarr; OAuth 2.0 Client IDs</small>
+    </div>
+    <div class="fg">
+      <label>Anthropic API-noegle</label>
+      <input type="password" id="inp-key" placeholder="sk-ant-...">
+      <small>Fra console.anthropic.com/account/keys</small>
+    </div>
+    <div class="modal-actions">
+      <button id="btn-cancel">Annuller</button>
+      <button id="btn-save">Gem indstillinger</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="h-inner">
+    <div class="h-date">
+      <div class="h-weekday" id="hdr-weekday">-</div>
+      <div class="h-fulldate" id="hdr-fulldate">-</div>
+    </div>
+    <div class="h-clock" id="hdr-clock">00:00</div>
+    <div class="h-actions">
+      <div class="auth-pill out" id="auth-pill">
+        <div class="auth-dot"></div>
+        <span id="auth-txt">Ikke logget ind</span>
+      </div>
+      <button class="btn btn-primary" id="btn-fetch">Hent oversigt</button>
+      <button class="btn btn-ghost" id="btn-settings" style="padding:9px 14px;">&#9881;</button>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+  <div id="view-welcome" class="welcome">
+    <span class="welcome-icon">&#127749;</span>
+    <h2>God morgen!</h2>
+    <p>Klik paa "Hent oversigt" for at se dagens program for boernene.</p>
+    <button class="btn btn-primary" id="btn-fetch2">Hent morgenbriefing</button>
+  </div>
+
+  <div id="view-loading" class="loading-box hidden">
+    <div class="spinner"></div>
+    <div class="loading-title">Henter din morgenbriefing...</div>
+    <ul class="steps">
+      <li id="step-cal">Google Kalender</li>
+      <li id="step-gmail">Beskeder fra Aula</li>
+      <li id="step-sheet">Skemaark (Sheets)</li>
+      <li id="step-drive">PDF-filer fra Drive</li>
+      <li id="step-ai">Genererer briefing med AI</li>
+    </ul>
+  </div>
+
+  <div id="view-briefing" class="hidden">
+    <div class="briefing-meta">
+      <h2>Din morgenbriefing</h2>
+      <span class="briefing-ts" id="briefing-ts"></span>
+    </div>
+    <div class="briefing-body" id="briefing-body"></div>
+    <div class="center"><button class="btn btn-primary" id="btn-refresh">Opdater</button></div>
+  </div>
+
+  <div id="view-error" class="hidden">
+    <div class="error-box">
+      <strong>Der opstod en fejl</strong>
+      <div id="err-msg"></div>
+      <pre id="err-detail"></pre>
+    </div>
+    <div class="center"><button class="btn btn-primary" id="btn-back">Tilage</button></div>
+  </div>
+</main>
+
+<script>
+var SPREADSHEET_ID  = '12_WN-EP8RrJp0NQ-5cHzuHQ6YDe_kxm5ey6Kg4l7T8w';
+var DRIVE_FOLDER_ID = '1VQWLtO88aXOmCr8xF8GdA0WnnBKsIV6n';
+var SCOPES = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/spreadsheets.readonly';
+var WEEKDAYS = ['Sondag','Mandag','Tirsdag','Onsdag','Torsdag','Fredag','Lordag'];
+var MONTHS   = ['januar','februar','marts','april','maj','juni','juli','august','september','oktober','november','december'];
+
+var accessToken = null;
+var tokenClient = null;
+var gisReady    = false;
+var pendingLoad = false;
+
+// ── STORAGE ──────────────────────────────────────────────────
+function sGet(k) { try { return localStorage.getItem(k) || ''; } catch(e) { return ''; } }
+function sSet(k,v){ try { localStorage.setItem(k,v); return true; } catch(e) { return false; } }
+function getClientId() { return sGet('mb_gci'); }
+function getApiKey()   { return sGet('mb_ak');  }
+function hasConfig()   { return !!(getClientId() && getApiKey()); }
+
+// ── VIEWS ────────────────────────────────────────────────────
+function showView(name) {
+  var names = ['welcome','loading','briefing','error'];
+  for (var i = 0; i < names.length; i++) {
+    var el = document.getElementById('view-' + names[i]);
+    if (!el) continue;
+    if (names[i] === name) el.classList.remove('hidden');
+    else el.classList.add('hidden');
+  }
+}
+function setStep(id, cls) { var el = document.getElementById('step-' + id); if (el) el.className = cls; }
+
+// ── CLOCK ────────────────────────────────────────────────────
+function updateClock() {
+  var n  = new Date();
+  var wd = document.getElementById('hdr-weekday');
+  var fd = document.getElementById('hdr-fulldate');
+  var cl = document.getElementById('hdr-clock');
+  if (wd) wd.textContent = WEEKDAYS[n.getDay()];
+  if (fd) fd.textContent = n.getDate() + '. ' + MONTHS[n.getMonth()] + ' ' + n.getFullYear();
+  if (cl) cl.textContent = String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+}
+
+// ── SETUP ────────────────────────────────────────────────────
+function showSetup() {
+  document.getElementById('inp-cid').value = getClientId();
+  document.getElementById('inp-key').value = getApiKey();
+  document.getElementById('overlay').classList.remove('hidden');
+}
+function hideSetup() {
+  document.getElementById('overlay').classList.add('hidden');
+}
+function saveSetup() {
+  var cid = document.getElementById('inp-cid').value.trim();
+  var key = document.getElementById('inp-key').value.trim();
+  if (!cid) { alert('Udfyld Google OAuth Client ID.'); return; }
+  if (!key) { alert('Udfyld Anthropic API-noegle.'); return; }
+  if (!sSet('mb_gci', cid) || !sSet('mb_ak', key)) {
+    alert('Kunne ikke gemme. Er du i privat-tilstand? Prov normal tilstand.');
+    return;
+  }
+  hideSetup();
+  tokenClient = null; accessToken = null; gisReady = false;
+  setAuthUI(false);
+  initGIS();
+  showView('welcome');
+}
+
+// ── AUTH ─────────────────────────────────────────────────────
+function setAuthUI(ok) {
+  var pill = document.getElementById('auth-pill');
+  var txt  = document.getElementById('auth-txt');
+  if (!pill) return;
+  pill.className = ok ? 'auth-pill in' : 'auth-pill out';
+  txt.textContent = ok ? 'Logget ind' : 'Ikke logget ind';
+}
+
+function initGIS() {
+  var cid = getClientId();
+  if (!cid) return;
+  function tryInit() {
+    if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+      setTimeout(tryInit, 200); return;
+    }
+    tokenClient = google.accounts.oauth2.initTokenClient({ client_id: cid, scope: SCOPES, callback: onToken });
+    gisReady = true;
+    if (pendingLoad) { pendingLoad = false; requestToken(); }
+  }
+  tryInit();
+}
+
+function requestToken() {
+  if (!tokenClient) { showErr('Google login ikke klar. Tjek Client ID.', ''); return; }
+  if (accessToken) { startFetching(); return; }
+  tokenClient.requestAccessToken({ prompt: '' });
+}
+
+function onToken(resp) {
+  if (resp.error) { showErr('Google login fejl: ' + resp.error, resp.error_description || ''); return; }
+  accessToken = resp.access_token;
+  setAuthUI(true);
+  startFetching();
+}
+
+function handleFetch() {
+  if (!hasConfig()) { showSetup(); return; }
+  if (!gisReady)    { pendingLoad = true; initGIS(); return; }
+  requestToken();
+}
+
+// ── GOOGLE API ───────────────────────────────────────────────
+function gget(url) {
+  return fetch(url, { headers: { 'Authorization': 'Bearer ' + accessToken } })
+    .then(function(r) {
+      if (!r.ok) return r.text().then(function(b) { throw new Error('Google ' + r.status + ': ' + b.slice(0,200)); });
+      return r.json();
+    });
+}
+
+// ── FETCHERS ─────────────────────────────────────────────────
+function fetchCalendar() {
+  var now = new Date(), end = new Date(now);
+  end.setDate(end.getDate() + 7);
+  var p = 'timeMin=' + encodeURIComponent(now.toISOString()) + '&timeMax=' + encodeURIComponent(end.toISOString()) + '&singleEvents=true&orderBy=startTime&maxResults=60';
+  return gget('https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader&maxResults=20')
+    .then(function(list) {
+      var cals = (list.items || []).slice(0, 8);
+      return Promise.all(cals.map(function(cal) {
+        return gget('https://www.googleapis.com/calendar/v3/calendars/' + encodeURIComponent(cal.id) + '/events?' + p)
+          .then(function(d) { return (d.items||[]).map(function(e) { e._cal = cal.summary; return e; }); })
+          .catch(function() { return []; });
+      }));
+    })
+    .then(function(results) {
+      var all = [];
+      results.forEach(function(r) { all = all.concat(r); });
+      return all.sort(function(a,b) {
+        var ta = (a.start && (a.start.dateTime || a.start.date)) || '';
+        var tb = (b.start && (b.start.dateTime || b.start.date)) || '';
+        return ta < tb ? -1 : ta > tb ? 1 : 0;
+      });
+    })
+    .catch(function() {
+      return gget('https://www.googleapis.com/calendar/v3/calendars/primary/events?' + p)
+        .then(function(d) { return d.items || []; });
+    });
+}
+
+function fetchAula() {
+  return gget('https://gmail.googleapis.com/gmail/v1/users/me/messages?q=' + encodeURIComponent('from:noreply@aula.dk newer_than:30d') + '&maxResults=15')
+    .then(function(list) {
+      if (!list.messages || !list.messages.length) return [];
+      return Promise.all(list.messages.slice(0,8).map(function(m) {
+        return gget('https://gmail.googleapis.com/gmail/v1/users/me/messages/' + m.id + '?format=full');
+      }));
+    }).catch(function() { return []; });
+}
+
+function fetchSheet() {
+  return gget('https://sheets.googleapis.com/v4/spreadsheets/' + SPREADSHEET_ID + '/values/A1:Z300')
+    .then(function(d) { return d.values || []; }).catch(function() { return []; });
+}
+
+function fetchPDFs() {
+  var q = encodeURIComponent("'" + DRIVE_FOLDER_ID + "' in parents and mimeType='application/pdf' and trashed=false");
+  return gget('https://www.googleapis.com/drive/v3/files?q=' + q + '&orderBy=modifiedTime+desc&fields=files(id,name,modifiedTime)&pageSize=15')
+    .then(function(d) { return d.files || []; }).catch(function() { return []; });
+}
+
+function downloadPDF(fileId) {
+  return fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', { headers: { 'Authorization': 'Bearer ' + accessToken } })
+    .then(function(r) { if (!r.ok) throw new Error('PDF ' + r.status); return r.blob(); })
+    .then(function(blob) {
+      if (blob.size > 8000000) throw new Error('PDF for stor');
+      return new Promise(function(res, rej) {
+        var fr = new FileReader();
+        fr.onload = function() { res(fr.result.split(',')[1]); };
+        fr.onerror = rej;
+        fr.readAsDataURL(blob);
+      });
+    });
+}
+
+// ── EMAIL HELPERS ────────────────────────────────────────────
+function eHeader(msg, name) {
+  var h = (msg.payload && msg.payload.headers) || [];
+  for (var i = 0; i < h.length; i++) if (h[i].name.toLowerCase() === name.toLowerCase()) return h[i].value;
+  return '';
+}
+function b64dec(s) { try { return atob(s.replace(/-/g,'+').replace(/_/g,'/')); } catch(e) { return ''; } }
+function eBody(msg) {
+  function scan(parts) {
+    if (!parts) return '';
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      if (p.mimeType === 'text/plain' && p.body && p.body.data) return b64dec(p.body.data);
+      if (p.parts) { var r = scan(p.parts); if (r) return r; }
+    }
+    for (var j = 0; j < parts.length; j++) {
+      var q = parts[j];
+      if (q.mimeType === 'text/html' && q.body && q.body.data) {
+        var d = document.createElement('div'); d.innerHTML = b64dec(q.body.data); return d.textContent || '';
+      }
+      if (q.parts) { var r2 = scan(q.parts); if (r2) return r2; }
+    }
+    return '';
+  }
+  if (msg.payload && msg.payload.body && msg.payload.body.data) return b64dec(msg.payload.body.data);
+  return scan((msg.payload && msg.payload.parts) || []);
+}
+
+// ── FORMAT FOR PROMPT ─────────────────────────────────────────
+function fmtCal(events) {
+  if (!events.length) return '(ingen begivenheder)';
+  return events.map(function(e) {
+    var s = '';
+    if (e.start && e.start.dateTime) s = new Date(e.start.dateTime).toLocaleString('da-DK',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+    else if (e.start && e.start.date) s = new Date(e.start.date + 'T12:00:00').toLocaleDateString('da-DK',{weekday:'long',day:'numeric',month:'long'});
+    return '- ' + (e.summary||'(ingen titel)') + ' | ' + s + (e.location ? ' - ' + e.location : '') + (e._cal ? ' [' + e._cal + ']' : '');
+  }).join('\n');
+}
+function fmtEmails(msgs) {
+  if (!msgs.length) return '(ingen Aula-beskeder)';
+  return msgs.map(function(m) {
+    return 'Emne: ' + eHeader(m,'subject') + '\nDato: ' + eHeader(m,'date') + '\n' + eBody(m).trim().slice(0,800);
+  }).join('\n\n---\n\n');
+}
+function fmtSheet(rows) {
+  if (!rows.length) return '(intet indhold)';
+  return rows.map(function(r) { return r.join('\t'); }).join('\n');
+}
+function fmtPDFs(files) {
+  if (!files.length) return '(ingen PDF-filer)';
+  return files.map(function(f) { return '- ' + f.name + ' (' + new Date(f.modifiedTime).toLocaleDateString('da-DK') + ')'; }).join('\n');
+}
+
+// ── AI ───────────────────────────────────────────────────────
+function callAI(cal, aula, sheet, pdfs, pdfMap) {
+  var now = new Date();
+  var dateStr = WEEKDAYS[now.getDay()] + ' d. ' + now.getDate() + '. ' + MONTHS[now.getMonth()] + ' ' + now.getFullYear();
+
+  var prompt = 'Det er ' + dateStr + '. Lav en dansk morgenbriefing om boernenes dag.\n\n'
+    + 'REGLER: Udelad begivenheder hvis titlen er i kantede parenteser [sadan]. Brug **fed** til klokkeslaet.\n\n'
+    + '## KALENDER:\n' + fmtCal(cal) + '\n\n'
+    + '## AULA BESKEDER:\n' + fmtEmails(aula) + '\n\n'
+    + '## SKEMAARK:\n' + fmtSheet(sheet) + '\n\n'
+    + '## PDF-FILER:\n' + fmtPDFs(pdfs) + '\n\n'
+    + 'STRUKTUR (brug kun sektioner med indhold):\n'
+    + '### I dag\n### Afhentning og transport\n### Mad og frokost\n### Resten af ugen\n### Fra skolen';
+
+  var content = [];
+  var ids = Object.keys(pdfMap);
+  if (ids.length > 0) {
+    var pf = null;
+    for (var i = 0; i < pdfs.length; i++) { if (pdfs[i].id === ids[0]) { pf = pdfs[i]; break; } }
+    content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdfMap[ids[0]] }, title: pf ? pf.name : 'PDF' });
+  }
+  content.push({ type: 'text', text: prompt });
+
+  return fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': getApiKey(),
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2000,
+      system: 'Du er en familieassistent. Svar KUN paa dansk. Brug markdown.',
+      messages: [{ role: 'user', content: content }]
+    })
+  }).then(function(r) {
+    if (!r.ok) return r.text().then(function(b) { throw new Error('Anthropic ' + r.status + ': ' + b.slice(0,300)); });
+    return r.json();
+  }).then(function(data) {
+    var b = (data.content || []).filter(function(x) { return x.type === 'text'; })[0];
+    return b ? b.text : '(ingen svar)';
+  });
+}
+
+// ── RENDER ───────────────────────────────────────────────────
+var COLOR_MAP = [
+  { words: ['i dag','idag'],                    cls: 'c-today'  },
+  { words: ['afhentning','transport','korsel'],  cls: 'c-trans'  },
+  { words: ['mad','frokost','menu'],             cls: 'c-food'   },
+  { words: ['ugen','uge','kommende'],            cls: 'c-week'   },
+  { words: ['skolen','aula','besked'],           cls: 'c-school' }
+];
+function cardCls(h) {
+  var low = h.toLowerCase();
+  for (var i = 0; i < COLOR_MAP.length; i++) {
+    var ws = COLOR_MAP[i].words;
+    for (var j = 0; j < ws.length; j++) { if (low.indexOf(ws[j]) !== -1) return COLOR_MAP[i].cls; }
+  }
+  return 'c-other';
+}
+function md2html(t) {
+  t = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  t = t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>');
+  var lines = t.split('\n'), html = '', inUl = false;
+  for (var i = 0; i < lines.length; i++) {
+    var l = lines[i];
+    if (/^[-*] /.test(l)) { if (!inUl) { html += '<ul>'; inUl = true; } html += '<li>' + l.replace(/^[-*] /,'') + '</li>'; }
+    else { if (inUl) { html += '</ul>'; inUl = false; } if (l.trim()) html += '<p>' + l + '</p>'; }
+  }
+  if (inUl) html += '</ul>';
+  return html;
+}
+function renderBriefing(md) {
+  var container = document.getElementById('briefing-body');
+  container.innerHTML = '';
+  var sections = md.split(/(?=^### )/m).filter(function(s) { return s.trim(); });
+  if (!sections.length) { container.innerHTML = '<div class="sc c-other"><div class="sc-body">' + md2html(md) + '</div></div>'; return; }
+  sections.forEach(function(sec) {
+    var lines = sec.split('\n');
+    var h     = lines[0].replace(/^###\s*/,'').trim();
+    var body  = lines.slice(1).join('\n').trim();
+    if (!body) return;
+    var card  = document.createElement('div');
+    card.className = 'sc ' + cardCls(h);
+    card.innerHTML = '<div class="sc-title">' + h + '</div><div class="sc-body">' + md2html(body) + '</div>';
+    container.appendChild(card);
+  });
+}
+
+// ── ERROR ────────────────────────────────────────────────────
+function showErr(msg, detail) {
+  document.getElementById('err-msg').textContent = msg || '';
+  document.getElementById('err-detail').textContent = detail || '';
+  showView('error');
+}
+
+// ── MAIN FLOW ────────────────────────────────────────────────
+function startFetching() {
+  showView('loading');
+  ['cal','gmail','sheet','drive','ai'].forEach(function(s) { setStep(s,''); });
+
+  var calData, aulaData, sheetData, pdfFiles, pdfMap;
+
+  setStep('cal','active');
+  fetchCalendar()
+  .then(function(r) { calData = r; setStep('cal','done'); setStep('gmail','active'); return fetchAula(); })
+  .then(function(r) { aulaData = r; setStep('gmail','done'); setStep('sheet','active'); return fetchSheet(); })
+  .then(function(r) { sheetData = r; setStep('sheet','done'); setStep('drive','active'); return fetchPDFs(); })
+  .then(function(r) {
+    pdfFiles = r; pdfMap = {};
+    if (pdfFiles.length > 0) {
+      return downloadPDF(pdfFiles[0].id)
+        .then(function(b64) { pdfMap[pdfFiles[0].id] = b64; })
+        .catch(function(e) { console.warn('PDF download:', e); });
+    }
+  })
+  .then(function() { setStep('drive','done'); setStep('ai','active'); return callAI(calData, aulaData, sheetData, pdfFiles, pdfMap); })
+  .then(function(md) {
+    setStep('ai','done');
+    var now = new Date();
+    document.getElementById('briefing-ts').textContent = 'Genereret kl. ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    renderBriefing(md);
+    showView('briefing');
+  })
+  .catch(function(err) {
+    console.error(err);
+    if (err.message && err.message.indexOf('401') !== -1) { accessToken = null; setAuthUI(false); }
+    showErr(err.message || 'Ukendt fejl', '');
+  });
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  updateClock();
+  setInterval(updateClock, 20000);
+
+  document.getElementById('btn-save').addEventListener('click', saveSetup);
+  document.getElementById('btn-cancel').addEventListener('click', function() { if (hasConfig()) hideSetup(); });
+  document.getElementById('btn-fetch').addEventListener('click', handleFetch);
+  document.getElementById('btn-fetch2').addEventListener('click', handleFetch);
+  document.getElementById('btn-refresh').addEventListener('click', handleFetch);
+  document.getElementById('btn-settings').addEventListener('click', showSetup);
+  document.getElementById('btn-back').addEventListener('click', function() { showView('welcome'); });
+
+  if (!hasConfig()) { showSetup(); }
+  showView('welcome');
+  if (hasConfig()) initGIS();
+});
+</script>
+</body>
+</html>
