@@ -465,7 +465,7 @@ function callAI(cal, aula, sheet, pdfs, pdfMap) {
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2000,
       system: 'Du er en familieassistent. Svar KUN paa dansk. Brug markdown.',
       messages: [{ role: 'user', content: content }]
